@@ -13,7 +13,7 @@ def sso_redirect(request):
     EVE_SSO_LOGIN_URL = "https://login.eveonline.com/oauth/authorize/"
     params = {
         'response_type': 'code',
-        'redirect_uri': settings.EVE_SSO_CALLBACK_URI,
+        'redirect_uri': settings.EVE_SSO_CALLBACK_URL,
         'client_id': settings.EVE_SSO_CLIENT_ID,
         'scope': request.GET.get('scope', ''),
     }
