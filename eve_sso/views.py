@@ -17,7 +17,7 @@ def sso_redirect(request):
         'client_id': settings.EVE_SSO_CLIENT_ID,
         'scope': request.GET.get('scope', ''),
     }
-    # ensure only one callback redirect model
+    # ensure only one callback redirect model per session
     try:
         CallbackRedirect.objects.get_by_request(request).delete()
     except CallbackRedirect.DoesNotExist:
@@ -29,7 +29,8 @@ def sso_redirect(request):
 
 def receive_callback(request):
     """
-    Parses SSO callback, validates, retrieves :model:`eve_sso.AccessToken`, and internally redirects.
+    Parses SSO callback, validates, retrieves :model:`eve_sso.AccessToken`, and
+    internally redirects to the target url.
     """
     code = request.GET.get('code', None)
     state = request.GET.get('state', None)
@@ -39,6 +40,4 @@ def receive_callback(request):
         token = cc.exchange()
         model.token = token
         model.save()
-        return redirect(model.url)
-    else:
-        return redirect(eve_sso.views.sso_redirect)
+    return redirect(model.url)
