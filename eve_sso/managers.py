@@ -10,7 +10,7 @@ class CallbackRedirectManager(models.Manager):
         Generates requisite salt and hash string for model creation.
         Validates any provided session key, salt, and hash string match.
         """
-        session_key = kwargs.pop('session_key', None)
+        session_key = kwargs['session_key']
         salt = kwargs.pop('salt', None)
         hash_string = kwargs.pop('hash_string', None)
         model = self.model()
@@ -30,8 +30,9 @@ class CallbackRedirectManager(models.Manager):
         if not request.session.exists(request.session.session_key):
             # install session in database
             request.session.create()
-        url = request.GET.get('next', '/')
-        return super(CallbackRedirectManager, self).create(session_key=request.session.session_key, url=url)
+        url = request.GET.pop('return', '/')
+        get = request.GET
+        return super(CallbackRedirectManager, self).create(session_key=request.session.session_key, url=url, get=get)
 
     def get_by_request(self, request):
         """

@@ -40,4 +40,4 @@ def receive_callback(request):
         token = cc.exchange()
         model.token = token
         model.save()
-    return redirect(model.url)
+    return redirect(model.url + '?' + urlib.urlencode(model.get))
