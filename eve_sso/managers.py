@@ -1,5 +1,6 @@
 from __future__ import unicode_literals
 from django.db import models
+import json
 
 class CallbackRedirectManager(models.Manager):
     """
@@ -31,7 +32,7 @@ class CallbackRedirectManager(models.Manager):
             # install session in database
             request.session.create()
         url = request.GET.pop('return', '/')
-        get = request.GET
+        get = json.dumps(request.GET)
         return super(CallbackRedirectManager, self).create(session_key=request.session.session_key, url=url, get=get)
 
     def get_by_request(self, request):
