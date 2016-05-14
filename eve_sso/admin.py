@@ -3,6 +3,9 @@ from eve_sso.models import CallbackCode, AccessToken, Scope, TokenData, Callback
 
 admin.site.register(CallbackCode)
 admin.site.register(AccessToken)
-admin.site.register(Scope)
 admin.site.register(TokenData)
 admin.site.register(CallbackRedirect)
+
+@admin.register(Scope)
+class ScopeAdmin(admin.ModelAdmin):
+    list_display = ('name', 'help_text')
