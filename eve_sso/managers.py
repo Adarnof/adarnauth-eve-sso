@@ -32,7 +32,7 @@ class CallbackRedirectManager(models.Manager):
             # install session in database
             request.session.create()
         get = dict(request.GET)
-        url = get('return', '/')
+        url = get.pop('return', '/')
         get = json.dumps(get)
         return super(CallbackRedirectManager, self).create(session_key=request.session.session_key, url=url, get=get)
 
