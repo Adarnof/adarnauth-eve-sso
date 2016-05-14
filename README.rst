@@ -86,7 +86,7 @@ Usage in Views
 6. If no valid tokens found, redirect to SSO::
 
     else:
-        get = request.GET
+        get = dict(request.GET)
         get['return'] = reverse(THIS_VIEW, *args)
         return redirect(reverse(eve_sso_redirect) + '?' + urllib.urlencode(get))
             

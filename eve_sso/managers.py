@@ -31,8 +31,9 @@ class CallbackRedirectManager(models.Manager):
         if not request.session.exists(request.session.session_key):
             # install session in database
             request.session.create()
-        url = request.GET.pop('return', '/')
-        get = json.dumps(request.GET)
+        get = dict(request.GET)
+        url = get('return', '/')
+        get = json.dumps(get)
         return super(CallbackRedirectManager, self).create(session_key=request.session.session_key, url=url, get=get)
 
     def get_by_request(self, request):
