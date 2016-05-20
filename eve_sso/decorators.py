@@ -18,9 +18,11 @@ def scopes_required(scopes):
             scope_models = set([])
             if isinstance(scopes, basestring):
                 scope_models.add(Scope.objects.get(name=scopes))
+                scope_querystring = scopes
             else:
                 for s in scopes:
                     scopes_models.add(Scope.objects.get(name=s))
+                scope_querystring = str.join(' ', scopes)
             for t in AccessToken.objects.filter(user=request.user).filter(scopes__contains=scopes_models):
                 try:
                     t.token
@@ -30,6 +32,7 @@ def scopes_required(scopes):
             sso_url_parts = urlparse(reverse('eve_sso:redirect'))
             querystring = QueryDict(sso_url_parts[4], mutable=True)
             querystring['next'] = reverse(view_func)
+            querystring['scope'] = scope_querystring
             sso_url_parts[4] = querystring.urlencode(safe='/')
             return redirect(urlunparse(sso_url_parts))
         return _wrapped_view

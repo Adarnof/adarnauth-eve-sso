@@ -7,7 +7,7 @@ from django.utils import timezone
 import base64
 import uuid
 import hashlib
-from eve_sso.managers import CallbackRedirectManager, AccessTokenManager
+from eve_sso.managers import CallbackRedirectManager
 
 class TokenError(Exception): pass
 class TokenInvalidError(TokenError): pass

@@ -46,6 +46,29 @@ Quick start
 Usage in Views
 ----------
 
+1. Import the decorator::
+
+    from eve_sso.decorators import scopes_required
+
+2. Wrap the view with the decorator, defining scopes required::
+
+    @scopes_required('fittingsRead')
+
+Use a list for multiple scopes::
+
+    @scopes_required(['fittingsRead','fittingsWrite'])
+
+3. Wrap the view with the decorator, accepting a second argument::
+
+    @scopes_required('fittingsRead')
+    def my_view(request, token):
+
+4. Use this token in your view.
+
+
+Manually Locating a Token
+----------
+
 1. Define a list of required scopes::
 
     REQUIRED_SCOPES = [
@@ -58,19 +81,13 @@ Usage in Views
 
     scope_list = [Scope.objects.get(name=s) for s in REQUIRED_SCOPES]
 
-3. Check if this is a SSO redirect::
+3. Check for tokens granting these scopes::
 
-    try:
-        callback = CallbackRedirect.objects.get_by_request(request)
-        if callback.token:
-            callback.token.exchange()
-    except CallbackRedirect.DoesNotExist:
-        pass
+    tokens = AccessToken.objects.filter(user=MY_USER).filter(scopes__contains=scope_list)
 
-4. Check for tokens granting these scopes::
+Can also restrict by character::
 
-    token_datas = TokenData.objects.filter(token__user=USER).filter(scopes__in=scope_list)
-    tokens = [t.token for t in token_datas]
+    tokens = AccessToken.objects.filter(character_id=MY_CHARACTER_ID)
 
 5. Loop through existing tokens, checking if still valid::
 
