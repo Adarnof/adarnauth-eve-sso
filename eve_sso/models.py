@@ -49,7 +49,26 @@ class CallbackCode(models.Model):
         r = requests.post(path, headers=custom_headers, json=data)
         r.raise_for_status()
         self.delete()
-        return AccessToken.objects.create_from_json(r.json())
+        access_token = r.json()['access_token']
+        refresh_token = r.json()['refresh_token']
+
+        data = {'authorization': 'Bearer ' + access_token}
+        r = requests.get(self.TOKEN_EXCHANGE_URL, json=data)
+        if r.status_code == 403:
+            raise TokenInvalidError()
+        r.raise_for_status()
+        model = AccessToken.objects.create(
+            character_id=r.json()['CharacterID'], 
+            character_name=r.json()['CharacterName'], 
+            character_owner_hash=r.json()['CharacterOwnerHash'],
+            access_token=access_token,
+            refresh_token=refresh_token,
+            token_type=r.json()['TokenType']
+        )
+        for s in r.json()['scopes']:
+            scope = Scope.objects.get(name=s)
+            model.scopes.add(scope)
+        return model
 
 @python_2_unicode_compatible
 class AccessToken(models.Model):
@@ -66,14 +85,16 @@ class AccessToken(models.Model):
 
     created = models.DateTimeField(auto_now_add=True)
     access_token = models.CharField(max_length=254, unique=True, help_text="The one-use access token granted by SSO.")
-    token_type = models.CharField(max_length=100, default="Bearer", choices=(('Bearer','Bearer'),), help_text="Token exchange protocol. Usually 'Bearer'.")
     refresh_token = models.CharField(max_length=254, blank=True, help_text="A re-usable token to generate new access tokens upon expiry. Only applies when scopes are granted by SSO.")
     user = models.ForeignKey(settings.AUTH_USER_MODEL, blank=True, null=True, help_text="The user to whom this token belongs.")
-
-    objects = AccessTokenManager()
+    character_id = models.IntegerField(help_text="The ID of the EVE character who authenticated by SSO.")
+    character_name = models.CharField(max_length=100, help_text="The name of the EVE character who authenticated by SSO.")
+    token_type = models.CharField(max_length=100, choices=(('Character', 'Character'),), default='Character', help_text="The applicable range of the token, being Character or Corporation.")
+    character_owner_hash = models.CharField(max_length=254, help_text="The unique string identifying this character and its owning EVE account. Changes if the owning account changes.")
+    scopes = models.ManyToManyField(Scope, blank=True, help_text="The access scopes granted by this SSO token.")
 
     def __str__(self):
-        return "%s SSO access token from %s" % (self.user, self.created)
+        return "%s SSO access token with scopes %s" % (self.user, self.scopes.all())
 
     @property
     def can_refresh(self):
@@ -130,26 +151,6 @@ class AccessToken(models.Model):
         else:
             raise NotRefreshableTokenError()
 
-    def exchange(self):
-        """
-        Get the character data and scopes of this token.
-        Stores the result and returns a :model:`eve_sso.TokenData` model.
-        Returns the :model:`eve_sso.TokenData` if it already exists.
-        """
-        try:
-            return TokenData.objects.get(token=self)
-        except TokenData.DoesNotExist:
-            data = {'authorization': 'Bearer ' + self.token}
-            r = requests.get(self.TOKEN_EXCHANGE_URL, json=data)
-            if r.status_code == 403:
-                raise TokenInvalidError()
-            r.raise_for_status()
-            model = TokenData.objects.create(token=self, character_id=r.json()['CharacterID'], character_name=r.json()['CharacterName'], character_owner_hash=r.json()['CharacterOwnerHash'])
-            for s in r.json()['scopes']:
-                scope = Scope.objects.get(name=s)
-                model.scopes.add(scope)
-            return model
-
 @python_2_unicode_compatible
 class Scope(models.Model):
     """
@@ -162,21 +163,6 @@ class Scope(models.Model):
         return self.name
 
 @python_2_unicode_compatible
-class TokenData(models.Model):
-    """
-    Represents the data returned upon exchanging a :model:`eve_sso.AccessToken`
-    """
-    token = models.OneToOneField(AccessToken, models.CASCADE, help_text="The source AccessToken from which this data was gathered.")
-    character_id = models.IntegerField(help_text="The ID of the EVE character who authenticated by SSO.")
-    character_name = models.CharField(max_length=100, help_text="The name of the EVE character who authenticated by SSO.")
-    token_type = models.CharField(max_length=100, choices=(('Character', 'Character'),), default='Character', help_text="The applicable range of the token, being Character or Corporation.")
-    character_owner_hash = models.CharField(max_length=254, help_text="The unique string identifying this character and its owning EVE account. Changes if the owning account changes.")
-    scopes = models.ManyToManyField(Scope, blank=True, help_text="The access scopes granted by this SSO token.")
-
-    def __str__(self):
-        return "%s SSO with %s scopes by %s" % (self.character_name, len(self.scopes.all()), self.token)
-
-@python_2_unicode_compatible
 class CallbackRedirect(models.Model):
     """
     Records the intended destination for the SSO callback.
@@ -185,7 +171,7 @@ class CallbackRedirect(models.Model):
     salt = models.CharField(max_length=32, help_text="Cryptographic salt used to generate the hash string.")
     hash_string = models.CharField(max_length=128, help_text="Cryptographic hash used to reference this callback.")
     url = models.CharField(max_length=254, default='/', help_text="The internal URL to redirect this callback towards.")
-    get = models.TextField(blank=True, default="{}", help_text="Additional GET parameters for the redirect.")
+    get = models.TextField(blank=True, default='', help_text="Additional GET parameters for the redirect.")
     session_key = models.CharField(max_length=254, unique=True, help_text="Session key identifying session this redirect was created for.")
     created = models.DateTimeField(auto_now_add=True)
     token = models.ForeignKey(AccessToken, blank=True, null=True, help_text = "AccessToken generated by a completed code exchange from callback processing.")

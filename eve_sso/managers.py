@@ -1,5 +1,6 @@
 from __future__ import unicode_literals
 from django.db import models
+from django.utils.six.moves.urllib.parse import urlparse, urlunparse
 import json
 
 class CallbackRedirectManager(models.Manager):
@@ -31,10 +32,17 @@ class CallbackRedirectManager(models.Manager):
         if not request.session.exists(request.session.session_key):
             # install session in database
             request.session.create()
-        get = dict(request.GET)
-        url = get.pop('return', '/')
-        get = json.dumps(get)
-        return super(CallbackRedirectManager, self).create(session_key=request.session.session_key, url=url, get=get)
+        path = request.get_full_path()
+        path_parts = urlparse(path)
+        get_dict = QueryDict(path_parts[4], mutable=True)
+        # remove scopes, if any
+        get_dict.pop('scope', None)
+        # build target url
+        url = get_dict.pop('next', '/')
+        url_parts = urlparse(url)
+        url_parts[4] = get_dict.urlencode(safe='/')
+        url = urlunparse(url_parts)
+        return super(CallbackRedirectManager, self).create(session_key=request.session.session_key, url=url)
 
     def get_by_request(self, request):
         """
@@ -44,16 +52,3 @@ class CallbackRedirectManager(models.Manager):
             # install session in database
             request.session.create()
         return super(CallbackRedirectManager, self).get(session_key=request.session.session_key)
-
-class AccessTokenManager(models.Manager):
-    """
-    Provides additional functionality for creating :model:`eve_sso.AccessToken` instances.
-    """
-    def create_from_json(dict):
-        """
-        Reads the returned json data from exchanging a SSO :model:`CallbackCode` and creates a model.
-        """
-        access_token = dict['access_token']
-        token_type = dict['token_type']
-        refresh_token = dict['refresh_token']
-        return super(AccessTokenManager, self).create(access_token=access_token, token_type=token_type, refresh_token=refresh_token)

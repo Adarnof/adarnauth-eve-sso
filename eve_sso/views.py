@@ -3,7 +3,7 @@ from __future__ import unicode_literals
 import urllib
 from django.shortcuts import render, redirect, get_object_or_404
 from django.conf import settings
-from eve_sso.models import AccessToken, CallbackCode, CallbackRedirect
+from eve_sso.models import CallbackCode, CallbackRedirect
 import json
 
 def sso_redirect(request):
@@ -39,13 +39,9 @@ def receive_callback(request):
     if model.validate(request):
         cc = CallbackCode.objects.create(code=code)
         token = cc.exchange()
-        try:
+        if request.user.is_authenticated:
             token.user = request.user
             token.save()
-        except:
-            # usually the result of a SimpleLazyObject used for
-            # the AnonymousUser user instance
-            pass
         model.token = token
         model.save()
-    return redirect(model.url + '?' + urllib.urlencode(json.loads(model.get)))
+    return redirect(model.url)
