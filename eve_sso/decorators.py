@@ -29,9 +29,10 @@ def scopes_required(scopes):
                     return view_func(request, t, *args, **kwargs)
                 except TokenError:
                     t.delete()
+            incoming_url_parts = urlparse(request.get_full_path())
             sso_url_parts = urlparse(reverse('eve_sso:redirect'))
-            querystring = QueryDict(sso_url_parts[4], mutable=True)
-            querystring['next'] = reverse(view_func)
+            querystring = QueryDict(incoming_url_parts[4], mutable=True)
+            querystring['next'] = incoming_url_parts[2]
             querystring['scope'] = scope_querystring
             sso_url_parts[4] = querystring.urlencode(safe='/')
             return redirect(urlunparse(sso_url_parts))
