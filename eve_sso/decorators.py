@@ -59,7 +59,7 @@ def scopes_required(scopes):
                     t.token
                 except TokenError:
                     t.delete()
-            tokens = AccessToken.objects.filter(user=request.user).filter(scopes__contains=scopes_models):
+            tokens = AccessToken.objects.filter(user=request.user).filter(scopes__contains=scopes_models)
             if tokens.exists():
                 return tokens
             else:
