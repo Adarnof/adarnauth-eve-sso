@@ -36,34 +36,25 @@ Quick start
 
 5. Run `python manage.py migrate` to create the eve_sso models.
 
-6. Have views redirect to /eve_sso/redirect with required scopes in
-   GET, separated by plus signs (+)
-
-7. Retrieve tokens through CallbackRedirect models identified by
-   request session key and exchange for character information.
-
-
 Usage in Views
 ----------
 
-1. Import the decorator::
+1. To request a new access token from SSO, wrap with the decorator::
+
+    from eve_sso.decorators import token_required
+    @token_required(scopes=['publicData'])
+    def my_view(request, token):
+        ...stuff...
+
+2. To find tokens on file for the user with specific scopes, or redirect to
+create a new one if none found::
 
     from eve_sso.decorators import scopes_required
-
-2. Wrap the view with the decorator, defining scopes required::
-
-    @scopes_required('fittingsRead')
-
-Use a list for multiple scopes::
-
-    @scopes_required(['fittingsRead','fittingsWrite'])
-
-3. Wrap the view with the decorator, accepting a second argument::
-
-    @scopes_required('fittingsRead')
+    @scopes_required(['characterFiittingsRead', 'characterFittingsWrite'])
     def my_view(request, token):
+        ...stuff...
 
-4. Use this token in your view.
+3. Use the token in your view.
 
 
 Manually Locating a Token

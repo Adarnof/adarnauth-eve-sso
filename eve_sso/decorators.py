@@ -52,11 +52,14 @@ def scopes_required(scopes):
                     scopes_models.add(Scope.objects.get(name=s))
                 scope_querystring = str.join(' ', scopes)
             for t in AccessToken.objects.filter(user=request.user).filter(scopes__contains=scopes_models):
+                token_list = []
                 try:
                     t.token
-                    return view_func(request, t, *args, **kwargs)
+                    token_set.append(t)
                 except TokenError:
                     t.delete()
+                if token_list:
+                    return view_func(request, token_list, *args, **kwargs)
             return token_required(scopes=scopes)
         return _wrapped_view
     return decorator
