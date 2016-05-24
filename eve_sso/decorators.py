@@ -4,7 +4,35 @@ from django.utils.six.moves.urllib.parse import urlparse, urlunparse
 from django.core.urlresolvers import reverse
 from django.http import QueryDict
 from django.shortcuts import redirect
-from eve_sso.models import AccessToken, Scope, TokenError
+from eve_sso.models import AccessToken, CallbackRedirect, Scope, TokenError
+
+def token_required(scopes=[]):
+    """
+    Decorator for views to request a new AccessToken.
+    Takes an optional list of scope names.
+    """
+    def decorator(view_func):
+        @wraps(view_func, assigned=available_attrs(view_func))
+        def _wrapped_view(request, *args, **kwargs):
+            try:
+                model = CallbackRedirect.objects.get_by_request(request)
+                token = model.token
+                model.delete()
+                return view_func(request, token, *args, **kwargs)
+            except CallbackRedirect.DoesNotExist:
+                if isinstance(scopes, basestring):
+                    scope_querystring = scopes
+                else:
+                    scope_querystring = str.join(' ', scopes)
+                incoming_url_parts = urlparse(request.get_full_path())
+                sso_url_parts = urlparse(reverse('eve_sso:redirect'))
+                querystring = QueryDict(incoming_url_parts[4], mutable=True)
+                querystring['redirect'] = incoming_url_parts[2]
+                querystring['scope'] = scope_querystring
+                sso_url_parts[4] = querystring.urlencode(safe='/')
+                return redirect(urlunparse(sso_url_parts))
+        return _wrapped_view
+    return decorator
 
 def scopes_required(scopes):
     """
@@ -29,12 +57,6 @@ def scopes_required(scopes):
                     return view_func(request, t, *args, **kwargs)
                 except TokenError:
                     t.delete()
-            incoming_url_parts = urlparse(request.get_full_path())
-            sso_url_parts = urlparse(reverse('eve_sso:redirect'))
-            querystring = QueryDict(incoming_url_parts[4], mutable=True)
-            querystring['next'] = incoming_url_parts[2]
-            querystring['scope'] = scope_querystring
-            sso_url_parts[4] = querystring.urlencode(safe='/')
-            return redirect(urlunparse(sso_url_parts))
+            return token_required(scopes=scopes)
         return _wrapped_view
     return decorator
