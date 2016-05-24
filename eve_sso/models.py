@@ -22,6 +22,17 @@ def generate_auth_string():
     return 'Basic %s' % auth
 
 @python_2_unicode_compatible
+class Scope(models.Model):
+    """
+    Represents an access scope granted by SSO.
+    """
+    name = models.CharField(max_length=100, unique=True, help_text="The official EVE name fot the scope.")
+    help_text = models.TextField(help_text="The official EVE description of the scope.")
+
+    def __str__(self):
+        return self.name
+
+@python_2_unicode_compatible
 class CallbackCode(models.Model):
     """
     Stores the code received from SSO callback.
@@ -150,17 +161,6 @@ class AccessToken(models.Model):
             self.save()
         else:
             raise NotRefreshableTokenError()
-
-@python_2_unicode_compatible
-class Scope(models.Model):
-    """
-    Represents an access scope granted by SSO.
-    """
-    name = models.CharField(max_length=100, unique=True, help_text="The official EVE name fot the scope.")
-    help_text = models.TextField(help_text="The official EVE description of the scope.")
-
-    def __str__(self):
-        return self.name
 
 @python_2_unicode_compatible
 class CallbackRedirect(models.Model):
