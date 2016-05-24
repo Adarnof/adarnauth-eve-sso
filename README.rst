@@ -54,7 +54,9 @@ create a new one if none found::
     def my_view(request, tokens):
         ...stuff...
 
-3. Use the token in your view.
+3. Filter for the token you want to use in your view::
+
+    my_character_tokens = tokens.filter(character_id=MY_CHARACTER_ID)
 
 
 Manually Locating a Token
