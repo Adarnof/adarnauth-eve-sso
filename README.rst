@@ -51,7 +51,7 @@ create a new one if none found::
 
     from eve_sso.decorators import scopes_required
     @scopes_required(['characterFiittingsRead', 'characterFittingsWrite'])
-    def my_view(request, token):
+    def my_view(request, tokens):
         ...stuff...
 
 3. Use the token in your view.
@@ -76,7 +76,7 @@ Manually Locating a Token
 
     tokens = AccessToken.objects.filter(user=MY_USER).filter(scopes__contains=scope_list)
 
-Can also restrict by character::
+4. Can also restrict by character::
 
     tokens = AccessToken.objects.filter(character_id=MY_CHARACTER_ID)
 
