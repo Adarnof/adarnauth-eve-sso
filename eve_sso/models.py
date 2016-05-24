@@ -95,12 +95,12 @@ class AccessToken(models.Model):
     TOKEN_EXCHANGE_URL = "https://login.eveonline.com/oauth/verify"
 
     created = models.DateTimeField(auto_now_add=True)
-    access_token = models.CharField(max_length=254, unique=True, help_text="The one-use access token granted by SSO.")
+    access_token = models.CharField(max_length=254, unique=True, help_text="The access token granted by SSO.")
     refresh_token = models.CharField(max_length=254, blank=True, help_text="A re-usable token to generate new access tokens upon expiry. Only applies when scopes are granted by SSO.")
     user = models.ForeignKey(settings.AUTH_USER_MODEL, blank=True, null=True, help_text="The user to whom this token belongs.")
     character_id = models.IntegerField(help_text="The ID of the EVE character who authenticated by SSO.")
     character_name = models.CharField(max_length=100, help_text="The name of the EVE character who authenticated by SSO.")
-    token_type = models.CharField(max_length=100, choices=(('Character', 'Character'),), default='Character', help_text="The applicable range of the token, being Character or Corporation.")
+    token_type = models.CharField(max_length=100, choices=(('Character', 'Character'),('Corporation', 'Corporation'),), default='Character', help_text="The applicable range of the token.")
     character_owner_hash = models.CharField(max_length=254, help_text="The unique string identifying this character and its owning EVE account. Changes if the owning account changes.")
     scopes = models.ManyToManyField(Scope, blank=True, help_text="The access scopes granted by this SSO token.")
 
