@@ -20,7 +20,7 @@ def token_required(scopes=[]):
                 tokens = AccessToken.objects.filter(pk=model.token.pk)
                 model.delete()
                 return view_func(request, tokens, *args, **kwargs)
-            except CallbackRedirect.DoesNotExist, AttributeError:
+            except (CallbackRedirect.DoesNotExist, AttributeError):
                 if isinstance(scopes, basestring):
                     scope_querystring = scopes
                 else:
