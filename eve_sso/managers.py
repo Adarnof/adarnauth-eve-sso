@@ -16,11 +16,13 @@ class CallbackRedirectManager(models.Manager):
         model = self.model()
         try:
             salt = kwargs.pop('salt', [None])[0]
-        except KeyError:
+            assert salt
+        except (KeyError, AssertionError):
             salt = model.generate_salt()
         try:
            hash_string = kwargs.pop('hash_string', [None])[0]
-        except KeyError:
+           assert hash_string
+        except (KeyError, AssertionError):
             hash_string = model.generate_hash(session_key, salt)
         assert hash_string == model.generate_hash(session_key, salt)
         return super(CallbackRedirectManager, self).create(session_key=session_key, salt=salt, hash_string=hash_string, *args, **kwargs)
