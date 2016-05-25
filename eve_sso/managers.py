@@ -13,16 +13,16 @@ class CallbackRedirectManager(models.Manager):
         Validates any provided session key, salt, and hash string match.
         """
         session_key = kwargs['session_key']
-        salt = kwargs.pop('salt', None)
-        hash_string = kwargs.pop('hash_string', None)
         model = self.model()
-        if not salt:
+        try:
+            salt = kwargs.pop('salt', [None])[0]
+        except KeyError:
             salt = model.generate_salt()
-        if not hash_string:
+        try:
+           hash_string = kwargs.pop('hash_string', [None])[0]
+        except KeyError:
             hash_string = model.generate_hash(session_key, salt)
-        check_hash = model.generate_hash(session_key, salt)
-        if check_hash != hash_string:
-            raise ValueError("Hash string does not match provided salt and session key.")
+        assert hash_string == model.generate_hash(session_key, salt)
         return super(CallbackRedirectManager, self).create(session_key=session_key, salt=salt, hash_string=hash_string, *args, **kwargs)
 
     def create_by_request(self, request):
