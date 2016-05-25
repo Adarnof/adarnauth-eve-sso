@@ -38,7 +38,7 @@ class CallbackRedirectManager(models.Manager):
         # remove scopes, if any
         get_dict.pop('scope', None)
         # build target url
-        url = get_dict.pop('redirect', '/')
+        url = get_dict.pop('redirect', ['/'])[0]
         url_parts = list(urlparse(url))
         url_parts[4] = get_dict.urlencode(safe='/')
         url = urlunparse(url_parts)
