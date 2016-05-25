@@ -57,9 +57,8 @@ class CallbackCode(models.Model):
             'grant_type': 'authorization_code',
             'code': self.code,
         }
-        r = requests.post(path, headers=custom_headers, json=data)
+        r = requests.post(self.CODE_EXCHANGE_URL, headers=custom_headers, json=data)
         r.raise_for_status()
-        self.delete()
         access_token = r.json()['access_token']
         refresh_token = r.json()['refresh_token']
 
@@ -79,6 +78,8 @@ class CallbackCode(models.Model):
         for s in r.json()['scopes']:
             scope = Scope.objects.get(name=s)
             model.scopes.add(scope)
+
+        self.delete()
         return model
 
 @python_2_unicode_compatible
