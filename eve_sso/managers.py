@@ -42,7 +42,7 @@ class CallbackRedirectManager(models.Manager):
         url_parts = list(urlparse(url))
         url_parts[4] = get_dict.urlencode(safe='/')
         url = urlunparse(url_parts)
-        return super(CallbackRedirectManager, self).create(session_key=request.session.session_key, url=url)
+        return self.create(session_key=request.session.session_key, url=url)
 
     def get_by_request(self, request):
         """
