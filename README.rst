@@ -39,18 +39,18 @@ Quick start
 Usage in Views
 ----------
 
-1. To request a new access token from SSO, wrap with the decorator::
-
-    from eve_sso.decorators import token_required
-    @token_required(scopes=['publicData'])
-    def my_view(request, token):
-        ...stuff...
-
-2. To find tokens on file for the user with specific scopes, or redirect to
+1. To find tokens on file for the user with specific scopes, or redirect to
 create a new one if none found::
 
-    from eve_sso.decorators import scopes_required
-    @scopes_required(['characterFiittingsRead', 'characterFittingsWrite'])
+    from eve_sso.decorators import token_required
+    @token_required(['characterFiittingsRead', 'characterFittingsWrite'])
+    def my_view(request, tokens):
+        ...stuff...
+
+2. To request a new access token from SSO, add the new argument::
+
+    from eve_sso.decorators import token_required
+    @token_required(scopes=['publicData'], new=True)
     def my_view(request, tokens):
         ...stuff...
 
