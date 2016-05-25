@@ -1,7 +1,7 @@
 from __future__ import unicode_literals
 from django.db import models
 from django.utils.six.moves.urllib.parse import urlparse, urlunparse
-import json
+from django.http import QueryDict
 
 class CallbackRedirectManager(models.Manager):
     """
@@ -39,7 +39,7 @@ class CallbackRedirectManager(models.Manager):
         get_dict.pop('scope', None)
         # build target url
         url = get_dict.pop('redirect', '/')
-        url_parts = urlparse(url)
+        url_parts = list(urlparse(url))
         url_parts[4] = get_dict.urlencode(safe='/')
         url = urlunparse(url_parts)
         return super(CallbackRedirectManager, self).create(session_key=request.session.session_key, url=url)
