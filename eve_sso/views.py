@@ -3,27 +3,39 @@ from __future__ import unicode_literals
 import urllib
 from django.shortcuts import render, redirect, get_object_or_404
 from django.conf import settings
+from django.utils.six import string_types
+from django.utils.six.moves.urllib.parse import urlparse, urlunparse
+from django.core.urlresolvers import reverse
+from django.http import QueryDict
 from eve_sso.models import CallbackCode, CallbackRedirect
-import json
 
-def sso_redirect(request):
+EVE_SSO_LOGIN_URL = "https://login.eveonline.com/oauth/authorize/"
+
+def sso_redirect(request, scopes=[]):
     """
     Generates a :model:`eve_sso.CallbackRedirect` for the specified request.
     Redirects to EVE for login.
     """
-    EVE_SSO_LOGIN_URL = "https://login.eveonline.com/oauth/authorize/"
+    if isinstance(scopes, string_types):
+        scopes = scopes.split()
+    scope_querystring = ' '.join(scopes)
+
     params = {
         'response_type': 'code',
         'redirect_uri': settings.EVE_SSO_CALLBACK_URL,
         'client_id': settings.EVE_SSO_CLIENT_ID,
-        'scope': request.GET.get('scope', ''),
+        'scope': scope_querystring,
     }
+
     # ensure only one callback redirect model per session
-    try:
-        CallbackRedirect.objects.get_by_request(request).delete()
-    except CallbackRedirect.DoesNotExist:
-        pass
-    model = CallbackRedirect.objects.create_by_request(request)
+    CallbackRedirect.objects.filter(session_key=request.session.session_key).delete()
+
+    # ensure session installed in database    
+    if not request.session.exists(request.session.session_key):
+        request.session.create()
+
+    model = CallbackRedirect.objects.create(session_key=request.session.session_key, url=request.get_full_path())
+
     params['state'] = model.hash_string
     param_string = urllib.urlencode(params)
     return redirect(EVE_SSO_LOGIN_URL + '?' + param_string)

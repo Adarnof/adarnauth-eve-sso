@@ -1,7 +1,5 @@
 from __future__ import unicode_literals
 from django.db import models
-from django.utils.six.moves.urllib.parse import urlparse, urlunparse
-from django.http import QueryDict
 
 class CallbackRedirectManager(models.Manager):
     """
@@ -26,31 +24,3 @@ class CallbackRedirectManager(models.Manager):
             hash_string = model.generate_hash(session_key, salt)
         assert hash_string == model.generate_hash(session_key, salt)
         return super(CallbackRedirectManager, self).create(salt=salt, hash_string=hash_string, *args, **kwargs)
-
-    def create_by_request(self, request):
-        """
-        Shortcut function to create model based on a request object.
-        """
-        if not request.session.exists(request.session.session_key):
-            # install session in database
-            request.session.create()
-        path = request.get_full_path()
-        path_parts = urlparse(path)
-        get_dict = QueryDict(path_parts[4], mutable=True)
-        # remove scopes, if any
-        get_dict.pop('scope', None)
-        # build target url
-        url = get_dict.pop('redirect', ['/'])[0]
-        url_parts = list(urlparse(url))
-        url_parts[4] = get_dict.urlencode(safe='/')
-        url = urlunparse(url_parts)
-        return self.create(session_key=request.session.session_key, url=url)
-
-    def get_by_request(self, request):
-        """
-        Shortcut function to get model based on a request object.
-        """
-        if not request.session.exists(request.session.session_key):
-            # install session in database
-            request.session.create()
-        return super(CallbackRedirectManager, self).get(session_key=request.session.session_key)

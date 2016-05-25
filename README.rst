@@ -70,13 +70,9 @@ Manually Locating a Token
         'characterFittingsWrite',
     ]
 
-2. Collect a list of Scope models required::
-
-    scope_list = [Scope.objects.get(name=s) for s in REQUIRED_SCOPES]
-
 3. Check for tokens granting these scopes::
 
-    tokens = AccessToken.objects.filter(user=MY_USER).filter(scopes__contains=scope_list)
+    tokens = AccessToken.objects.filter(user=MY_USER).filter(scopes__name__in=REQUIRED_SCOPES)
 
 4. Can also restrict by character::
 
@@ -96,8 +92,6 @@ Manually Locating a Token
 6. If no valid tokens found, redirect to SSO::
 
     else:
-        get = dict(request.GET)
-        get['return'] = reverse(THIS_VIEW, *args)
-        return redirect(reverse(eve_sso_redirect) + '?' + urllib.urlencode(get))
+        return sso_redirect(request, scopes=REQUIRED_SCOPES)
             
 7. Use the token for your app.
