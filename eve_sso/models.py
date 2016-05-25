@@ -7,6 +7,7 @@ from django.utils import timezone
 import base64
 import uuid
 import hashlib
+import datetime
 from eve_sso.managers import CallbackRedirectManager
 
 class TokenError(Exception): pass
@@ -78,8 +79,8 @@ class CallbackCode(models.Model):
             token_type=r.json()['TokenType']
         )
 
-        if 'scopes' in r.json():
-            for s in r.json()['scopes']:
+        if 'Scopes' in r.json():
+            for s in r.json()['Scopes'].split():
                 scope = Scope.objects.get(name=s)
                 model.scopes.add(scope)
 
@@ -126,7 +127,7 @@ class AccessToken(models.Model):
         """
         Determines if the access token has expired.
         """
-        if self.created + datetime.TimeDelta(seconds=self.TOKEN_VALID_DURATION) > timezone.now():
+        if self.created + datetime.timedelta(seconds=self.TOKEN_VALID_DURATION) > timezone.now():
             return False
         else:
             return True
@@ -148,20 +149,20 @@ class AccessToken(models.Model):
         Exchanges refresh token to generate a fresh access token.
         """
         if self.can_refresh:
-            data = {
-                'Content-Type': 'application/x-www-form-urlencoded',
+            custom_headers = {
+                'Content-Type': 'application/json',
                 'Authorization': generate_auth_string(),
             }
             params = {
                 'grant_type': self.TOKEN_REFRESH_GRANT_TYPE,
                 'refresh_token': self.refresh_token,
             }
-            r = requests.post(self.TOKEN_REFRESH_URL, params=params, json=data)
+            r = requests.post(self.TOKEN_REFRESH_URL, params=params, headers=custom_headers)
             if r.status_code == 403:
                 raise TokenInvalidError()
             r.raise_for_status()
             self.created = timezone.now()
-            self.token = r.json()['access_token']
+            self.access_token = r.json()['access_token']
             self.save()
         else:
             raise NotRefreshableTokenError()

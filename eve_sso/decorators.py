@@ -51,17 +51,17 @@ def scopes_required(scopes):
                 scope_querystring = scopes
             else:
                 for s in scopes:
-                    scopes_models.add(Scope.objects.get(name=s))
+                    scope_models.add(Scope.objects.get(name=s))
                 scope_querystring = str.join(' ', scopes)
-            for t in AccessToken.objects.filter(user=request.user).filter(scopes__contains=scopes_models):
+            for t in AccessToken.objects.filter(user=request.user).filter(scopes__in=scope_models):
                 # make sure tokens on file are still valid
                 try:
                     t.token
                 except TokenError:
                     t.delete()
-            tokens = AccessToken.objects.filter(user=request.user).filter(scopes__contains=scopes_models)
+            tokens = AccessToken.objects.filter(user=request.user).filter(scopes__in=scope_models)
             if tokens.exists():
-                return tokens
+                return view_func(request, tokens, *args, **kwargs)
             else:
                 return token_required(scopes=scopes)
         return _wrapped_view
