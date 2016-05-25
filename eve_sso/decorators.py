@@ -26,7 +26,7 @@ def token_required(scopes=[]):
                 else:
                     scope_querystring = str.join(' ', scopes)
                 incoming_url_parts = urlparse(request.get_full_path())
-                sso_url_parts = urlparse(reverse('eve_sso:redirect'))
+                sso_url_parts = list(urlparse(reverse('eve_sso:redirect')))
                 querystring = QueryDict(incoming_url_parts[4], mutable=True)
                 querystring['redirect'] = incoming_url_parts[2]
                 querystring['scope'] = scope_querystring
