@@ -22,7 +22,7 @@ class Migration(migrations.Migration):
                 ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
                 ('created', models.DateTimeField(auto_now_add=True)),
                 ('access_token', models.CharField(help_text='The access token granted by SSO.', max_length=254, unique=True)),
-                ('refresh_token', models.CharField(blank=True, help_text='A re-usable token to generate new access tokens upon expiry. Only applies when scopes are granted by SSO.', max_length=254)),
+                ('refresh_token', models.CharField(blank=True, help_text='A re-usable token to generate new access tokens upon expiry. Only applies when scopes are granted by SSO.', max_length=254, null=True)),
                 ('character_id', models.IntegerField(help_text='The ID of the EVE character who authenticated by SSO.')),
                 ('character_name', models.CharField(help_text='The name of the EVE character who authenticated by SSO.', max_length=100)),
                 ('token_type', models.CharField(choices=[('Character', 'Character'), ('Corporation', 'Corporation')], default='Character', help_text='The applicable range of the token.', max_length=100)),

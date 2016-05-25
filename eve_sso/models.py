@@ -38,6 +38,7 @@ class CallbackCode(models.Model):
     Stores the code received from SSO callback.
     """
     CODE_EXCHANGE_URL = "https://login.eveonline.com/oauth/token"
+    TOKEN_EXCHANGE_URL = "https://login.eveonline.com/oauth/verify"
 
     code = models.CharField(max_length=254, help_text="Code used to retrieve access token from SSO.")
     created = models.DateTimeField(auto_now_add=True)
@@ -51,7 +52,7 @@ class CallbackCode(models.Model):
         """
         custom_headers = {
             'Authorization': generate_auth_string(),
-            'Content-Type': 'application/x-www-form-urlencoded',
+            'Content-Type': 'application/json',
         }
         data = {
             'grant_type': 'authorization_code',
@@ -62,8 +63,9 @@ class CallbackCode(models.Model):
         access_token = r.json()['access_token']
         refresh_token = r.json()['refresh_token']
 
-        data = {'authorization': 'Bearer ' + access_token}
-        r = requests.get(self.TOKEN_EXCHANGE_URL, json=data)
+        custom_headers = {'Authorization': 'Bearer ' + access_token}
+
+        r = requests.get(self.TOKEN_EXCHANGE_URL, headers=custom_headers)
         if r.status_code == 403:
             raise TokenInvalidError()
         r.raise_for_status()
@@ -75,9 +77,11 @@ class CallbackCode(models.Model):
             refresh_token=refresh_token,
             token_type=r.json()['TokenType']
         )
-        for s in r.json()['scopes']:
-            scope = Scope.objects.get(name=s)
-            model.scopes.add(scope)
+
+        if 'scopes' in r.json():
+            for s in r.json()['scopes']:
+                scope = Scope.objects.get(name=s)
+                model.scopes.add(scope)
 
         self.delete()
         return model
@@ -93,11 +97,10 @@ class AccessToken(models.Model):
     except:
         TOKEN_VALID_DURATION = 1200 #seconds
     TOKEN_REFRESH_GRANT_TYPE = 'refresh_token'
-    TOKEN_EXCHANGE_URL = "https://login.eveonline.com/oauth/verify"
 
     created = models.DateTimeField(auto_now_add=True)
     access_token = models.CharField(max_length=254, unique=True, help_text="The access token granted by SSO.")
-    refresh_token = models.CharField(max_length=254, blank=True, help_text="A re-usable token to generate new access tokens upon expiry. Only applies when scopes are granted by SSO.")
+    refresh_token = models.CharField(max_length=254, blank=True, null=True, help_text="A re-usable token to generate new access tokens upon expiry. Only applies when scopes are granted by SSO.")
     user = models.ForeignKey(settings.AUTH_USER_MODEL, blank=True, null=True, help_text="The user to whom this token belongs.")
     character_id = models.IntegerField(help_text="The ID of the EVE character who authenticated by SSO.")
     character_name = models.CharField(max_length=100, help_text="The name of the EVE character who authenticated by SSO.")

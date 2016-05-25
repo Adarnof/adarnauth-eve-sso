@@ -39,9 +39,12 @@ def receive_callback(request):
     if model.validate(request):
         cc = CallbackCode.objects.create(code=code)
         token = cc.exchange()
-        if request.user.is_authenticated:
+        try:
             token.user = request.user
             token.save()
+        except ValueError:
+            # user is not logged in
+            pass
         model.token = token
         model.save()
     return redirect(model.url)
