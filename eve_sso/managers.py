@@ -25,7 +25,7 @@ class CallbackRedirectManager(models.Manager):
         except (KeyError, AssertionError):
             hash_string = model.generate_hash(session_key, salt)
         assert hash_string == model.generate_hash(session_key, salt)
-        return super(CallbackRedirectManager, self).create(session_key=session_key, salt=salt, hash_string=hash_string, *args, **kwargs)
+        return super(CallbackRedirectManager, self).create(salt=salt, hash_string=hash_string, *args, **kwargs)
 
     def create_by_request(self, request):
         """
