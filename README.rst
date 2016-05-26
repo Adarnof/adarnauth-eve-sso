@@ -5,8 +5,6 @@ Adarnauth-EVE-SSO
 Adarnauth-EVE-SSO is a simple Django app to collect and manage
 access tokens from EVE Online's Single Sign On feature.
 
-Detailed documentation is in the "docs" directory.
-
 Quick start
 -----------
 
@@ -57,7 +55,6 @@ create a new one if none found::
 3. Filter for the token you want to use in your view::
 
     my_character_tokens = tokens.filter(character_id=MY_CHARACTER_ID)
-
 
 Manually Locating a Token
 ----------
