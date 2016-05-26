@@ -39,6 +39,11 @@ def token_required(scopes=[], new=False):
                 pass
 
             if not new:
+                # ensure user logged in to check existing tokens
+                if not request.user.is_authenticated():
+                    from django.contrib.auth.views import redirect_to_login
+                    return redirect_to_login(request.get_full_path())
+
                 # collect tokens in db, check if still valid, return if any
                 for t in AccessToken.objects.filter(user__pk=request.user.pk).filter(scopes__name__in=scopes):
                     try:
