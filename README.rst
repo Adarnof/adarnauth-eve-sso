@@ -41,7 +41,7 @@ Usage in Views
 create a new one if none found::
 
     from eve_sso.decorators import token_required
-    @token_required(['characterFiittingsRead', 'characterFittingsWrite'])
+    @token_required(scopes=['characterFiittingsRead', 'characterFittingsWrite'])
     def my_view(request, tokens):
         ...stuff...
 

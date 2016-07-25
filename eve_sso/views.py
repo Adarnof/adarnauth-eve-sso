@@ -2,7 +2,7 @@ from __future__ import unicode_literals
 
 import urllib
 from django.shortcuts import render, redirect, get_object_or_404
-from django.conf import settings
+from eve_sso.app_settings import EVE_SSO_CLIENT_ID, EVE_SSO_CLIENT_SECRET, EVE_SSO_CALLBACK_URL
 from django.utils.six import string_types
 from django.utils.six.moves.urllib.parse import urlparse, urlunparse
 from django.core.urlresolvers import reverse
@@ -11,10 +11,11 @@ from eve_sso.models import CallbackCode, CallbackRedirect
 
 EVE_SSO_LOGIN_URL = "https://login.eveonline.com/oauth/authorize/"
 
-def sso_redirect(request, scopes=[]):
+def sso_redirect(request, scopes=[], return_to=None):
     """
     Generates a :model:`eve_sso.CallbackRedirect` for the specified request.
     Redirects to EVE for login.
+    Accepts a view or URL name as a redirect after SSO.
     """
     if isinstance(scopes, string_types):
         scopes = scopes.split()
@@ -22,8 +23,8 @@ def sso_redirect(request, scopes=[]):
 
     params = {
         'response_type': 'code',
-        'redirect_uri': settings.EVE_SSO_CALLBACK_URL,
-        'client_id': settings.EVE_SSO_CLIENT_ID,
+        'redirect_uri': EVE_SSO_CALLBACK_URL,
+        'client_id': EVE_SSO_CLIENT_ID,
         'scope': scope_querystring,
     }
 
@@ -34,7 +35,12 @@ def sso_redirect(request, scopes=[]):
     if not request.session.exists(request.session.session_key):
         request.session.create()
 
-    model = CallbackRedirect.objects.create(session_key=request.session.session_key, url=request.get_full_path())
+    if return_to:
+        url = reverse(return_to)
+    else:
+        url = request.get_full_path()
+
+    model = CallbackRedirect.objects.create(session_key=request.session.session_key, url=url)
 
     params['state'] = model.hash_string
     param_string = urllib.urlencode(params)

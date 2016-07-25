@@ -2,6 +2,7 @@ from __future__ import unicode_literals
 from django.utils.encoding import python_2_unicode_compatible
 from django.db import models
 from django.conf import settings
+from eve_sso.app_settings import EVE_SSO_CLIENT_ID, EVE_SSO_CLIENT_SECRET, EVE_SSO_TOKEN_VALID_DURATION
 import requests
 from django.utils import timezone
 import base64
@@ -16,8 +17,8 @@ class TokenExpiredError(TokenError): pass
 class NotRefreshableTokenError(TokenError): pass
 
 def generate_auth_string():
-    client_id = settings.EVE_SSO_CLIENT_ID
-    client_secret = settings.EVE_SSO_CLIENT_SECRET
+    client_id = EVE_SSO_CLIENT_ID
+    client_secret = EVE_SSO_CLIENT_SECRET
     conc = "%s:%s" % (client_id, client_secret)
     auth = base64.b64encode(conc)
     return 'Basic %s' % auth
@@ -93,10 +94,6 @@ class AccessToken(models.Model):
     Stores the token returned by SSO callback.
     """
     TOKEN_REFRESH_URL = "https://login.eveonline.com/oauth/token"
-    try:
-        TOKEN_VALID_DURATION = settings.EVE_SSO_TOKEN_VALID_DURATION
-    except:
-        TOKEN_VALID_DURATION = 1200 #seconds
     TOKEN_REFRESH_GRANT_TYPE = 'refresh_token'
 
     created = models.DateTimeField(auto_now_add=True)
@@ -110,7 +107,7 @@ class AccessToken(models.Model):
     scopes = models.ManyToManyField(Scope, blank=True, help_text="The access scopes granted by this SSO token.")
 
     def __str__(self):
-        return "%s SSO access token with scopes %s" % (self.user, self.scopes.all())
+        return "%s - %s" % (self.character_name, u", ".join([s.name for s in self.scopes.all()]))
 
     @property
     def can_refresh(self):
@@ -158,7 +155,7 @@ class AccessToken(models.Model):
                 'refresh_token': self.refresh_token,
             }
             r = requests.post(self.TOKEN_REFRESH_URL, params=params, headers=custom_headers)
-            if r.status_code == 403:
+            if r.status_code in [400, 403]:
                 raise TokenInvalidError()
             r.raise_for_status()
             self.created = timezone.now()
