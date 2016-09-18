@@ -124,7 +124,7 @@ class AccessToken(models.Model):
         """
         Determines if the access token has expired.
         """
-        if self.created + datetime.timedelta(seconds=self.TOKEN_VALID_DURATION) > timezone.now():
+        if self.created + datetime.timedelta(seconds=EVE_SSO_TOKEN_VALID_DURATION) > timezone.now():
             return False
         else:
             return True
