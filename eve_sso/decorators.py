@@ -40,7 +40,7 @@ def token_required(scopes=[], new=False):
 
             if not new:
                 # ensure user logged in to check existing tokens
-                if not request.user.is_authenticated():
+                if not request.user.is_authenticated:
                     from django.contrib.auth.views import redirect_to_login
                     return redirect_to_login(request.get_full_path())
 
