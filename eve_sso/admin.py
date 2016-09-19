@@ -17,8 +17,8 @@ class ScopeAdmin(admin.ModelAdmin):
 @admin.register(AccessToken)
 class AccessTokenAdmin(admin.ModelAdmin):
     @staticmethod
-    def scopes(obj):
+    def get_scopes(obj):
         return ", ".join([x.name for x in obj.scopes.all()])
 
-    list_display = ('user', 'character_name', 'scopes')
+    list_display = ('user', 'character_name', 'get_scopes')
     search_fields = ['user__%s' % User.USERNAME_FIELD, 'character_name', 'scopes__name']
