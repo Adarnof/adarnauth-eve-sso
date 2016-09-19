@@ -11,10 +11,22 @@ import hashlib
 import datetime
 from eve_sso.managers import CallbackRedirectManager
 
-class TokenError(Exception): pass
-class TokenInvalidError(TokenError): pass
-class TokenExpiredError(TokenError): pass
-class NotRefreshableTokenError(TokenError): pass
+
+class TokenError(Exception):
+    pass
+
+
+class TokenInvalidError(TokenError):
+    pass
+
+
+class TokenExpiredError(TokenError):
+    pass
+
+
+class NotRefreshableTokenError(TokenError):
+    pass
+
 
 def generate_auth_string():
     client_id = EVE_SSO_CLIENT_ID
@@ -22,6 +34,7 @@ def generate_auth_string():
     conc = "%s:%s" % (client_id, client_secret)
     auth = base64.b64encode(conc)
     return 'Basic %s' % auth
+
 
 @python_2_unicode_compatible
 class Scope(models.Model):
@@ -33,6 +46,7 @@ class Scope(models.Model):
 
     def __str__(self):
         return self.name
+
 
 @python_2_unicode_compatible
 class CallbackCode(models.Model):
@@ -72,8 +86,8 @@ class CallbackCode(models.Model):
             raise TokenInvalidError()
         r.raise_for_status()
         model = AccessToken.objects.create(
-            character_id=r.json()['CharacterID'], 
-            character_name=r.json()['CharacterName'], 
+            character_id=r.json()['CharacterID'],
+            character_name=r.json()['CharacterName'],
             character_owner_hash=r.json()['CharacterOwnerHash'],
             access_token=access_token,
             refresh_token=refresh_token,
@@ -88,6 +102,7 @@ class CallbackCode(models.Model):
         self.delete()
         return model
 
+
 @python_2_unicode_compatible
 class AccessToken(models.Model):
     """
@@ -98,16 +113,23 @@ class AccessToken(models.Model):
 
     created = models.DateTimeField(auto_now_add=True)
     access_token = models.CharField(max_length=254, unique=True, help_text="The access token granted by SSO.")
-    refresh_token = models.CharField(max_length=254, blank=True, null=True, help_text="A re-usable token to generate new access tokens upon expiry. Only applies when scopes are granted by SSO.")
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, blank=True, null=True, help_text="The user to whom this token belongs.")
+    refresh_token = models.CharField(max_length=254, blank=True, null=True,
+                                     help_text="A re-usable token to generate new access tokens upon expiry. "
+                                               "Only applies when scopes are granted by SSO.")
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, blank=True, null=True,
+                             help_text="The user to whom this token belongs.")
     character_id = models.IntegerField(help_text="The ID of the EVE character who authenticated by SSO.")
-    character_name = models.CharField(max_length=100, help_text="The name of the EVE character who authenticated by SSO.")
-    token_type = models.CharField(max_length=100, choices=(('Character', 'Character'),('Corporation', 'Corporation'),), default='Character', help_text="The applicable range of the token.")
-    character_owner_hash = models.CharField(max_length=254, help_text="The unique string identifying this character and its owning EVE account. Changes if the owning account changes.")
+    character_name = models.CharField(max_length=100,
+                                      help_text="The name of the EVE character who authenticated by SSO.")
+    token_type = models.CharField(max_length=100, choices=(('Character', 'Character'), ('Corporation', 'Corporation'),),
+                                  default='Character', help_text="The applicable range of the token.")
+    character_owner_hash = models.CharField(max_length=254,
+                                            help_text="The unique string identifying this character and its owning EVE "
+                                                      "account. Changes if the owning account changes.")
     scopes = models.ManyToManyField(Scope, blank=True, help_text="The access scopes granted by this SSO token.")
 
     def __str__(self):
-        return "%s - %s" % (self.character_name, u", ".join([s.name for s in self.scopes.all()]))
+        return "%s - %s" % (self.character_name, ", ".join([s.name for s in self.scopes.all()]))
 
     @property
     def can_refresh(self):
@@ -164,6 +186,7 @@ class AccessToken(models.Model):
         else:
             raise NotRefreshableTokenError()
 
+
 @python_2_unicode_compatible
 class CallbackRedirect(models.Model):
     """
@@ -173,22 +196,26 @@ class CallbackRedirect(models.Model):
     salt = models.CharField(max_length=32, help_text="Cryptographic salt used to generate the hash string.")
     hash_string = models.CharField(max_length=128, help_text="Cryptographic hash used to reference this callback.")
     url = models.CharField(max_length=254, default='/', help_text="The internal URL to redirect this callback towards.")
-    session_key = models.CharField(max_length=254, unique=True, help_text="Session key identifying session this redirect was created for.")
+    session_key = models.CharField(max_length=254, unique=True,
+                                   help_text="Session key identifying session this redirect was created for.")
     created = models.DateTimeField(auto_now_add=True)
-    token = models.ForeignKey(AccessToken, blank=True, null=True, help_text = "AccessToken generated by a completed code exchange from callback processing.")
+    token = models.ForeignKey(AccessToken, blank=True, null=True,
+                              help_text="AccessToken generated by a completed code exchange from callback processing.")
 
     objects = CallbackRedirectManager()
 
     def __str__(self):
         return "Redirect for %s to url %s" % (self.session_key, self.url)
 
-    def generate_hash(self, session_key, salt):
+    @staticmethod
+    def generate_hash(session_key, salt):
         """
         Generate the hash string comprised of the provided session key and salt.
         """
         return hashlib.sha512(session_key + salt).hexdigest()
 
-    def generate_salt(self):
+    @staticmethod
+    def generate_salt():
         """
         Produce a random salt to be used for hashing.
         """

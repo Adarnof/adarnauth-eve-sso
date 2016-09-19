@@ -2,14 +2,13 @@ from __future__ import unicode_literals
 
 import urllib
 from django.shortcuts import render, redirect, get_object_or_404
-from eve_sso.app_settings import EVE_SSO_CLIENT_ID, EVE_SSO_CLIENT_SECRET, EVE_SSO_CALLBACK_URL
+from eve_sso.app_settings import EVE_SSO_CLIENT_ID, EVE_SSO_CALLBACK_URL
 from django.utils.six import string_types
-from django.utils.six.moves.urllib.parse import urlparse, urlunparse
 from django.core.urlresolvers import reverse
-from django.http import QueryDict
 from eve_sso.models import CallbackCode, CallbackRedirect
 
 EVE_SSO_LOGIN_URL = "https://login.eveonline.com/oauth/authorize/"
+
 
 def sso_redirect(request, scopes=[], return_to=None):
     """
@@ -45,6 +44,7 @@ def sso_redirect(request, scopes=[], return_to=None):
     params['state'] = model.hash_string
     param_string = urllib.urlencode(params)
     return redirect(EVE_SSO_LOGIN_URL + '?' + param_string)
+
 
 def receive_callback(request):
     """

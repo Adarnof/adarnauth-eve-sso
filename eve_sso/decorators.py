@@ -1,12 +1,13 @@
+from __future__ import unicode_literals
 from functools import wraps
 from django.utils.decorators import available_attrs
 from django.utils.six import string_types
-from eve_sso.models import AccessToken, CallbackRedirect, Scope, TokenError
-
+from eve_sso.models import AccessToken, CallbackRedirect, TokenError
 
 import logging
 
 logger = logging.getLogger(__name__)
+
 
 def token_required(scopes=[], new=False):
     """
@@ -57,5 +58,7 @@ def token_required(scopes=[], new=False):
             # trigger creation of new token via sso
             from eve_sso.views import sso_redirect
             return sso_redirect(request, scopes=scopes)
+
         return _wrapped_view
+
     return decorator
