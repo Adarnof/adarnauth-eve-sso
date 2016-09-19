@@ -20,5 +20,7 @@ class AccessTokenAdmin(admin.ModelAdmin):
     def get_scopes(obj):
         return ", ".join([x.name for x in obj.scopes.all()])
 
+    get_scopes.short_description = 'Scopes'
+
     list_display = ('user', 'character_name', 'get_scopes')
     search_fields = ['user__%s' % User.USERNAME_FIELD, 'character_name', 'scopes__name']
