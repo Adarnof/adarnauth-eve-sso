@@ -16,8 +16,7 @@ class ScopeAdmin(admin.ModelAdmin):
 
 @admin.register(AccessToken)
 class AccessTokenAdmin(admin.ModelAdmin):
-    @staticmethod
-    def get_scopes(obj):
+    def get_scopes(self, obj):
         return ", ".join([x.name for x in obj.scopes.all()])
 
     get_scopes.short_description = 'Scopes'
