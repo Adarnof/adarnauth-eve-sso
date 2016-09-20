@@ -212,6 +212,8 @@ class CallbackRedirect(models.Model):
         """
         Generate the hash string comprised of the provided session key and salt.
         """
+        session_key = str(session_key).encode('utf-8')
+        salt = str(salt).encode('utf-8')
         return hashlib.sha512(session_key + salt).hexdigest()
 
     @staticmethod
