@@ -46,7 +46,7 @@ def sso_redirect(request, scopes=[], return_to=None):
     model = CallbackRedirect.objects.create(session_key=request.session.session_key, url=url)
 
     params['state'] = model.hash_string
-    param_string = urllib.urlencode(params)
+    param_string = urlencode(params)
     return redirect(EVE_SSO_LOGIN_URL + '?' + param_string)
 
 
