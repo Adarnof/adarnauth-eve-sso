@@ -2,7 +2,7 @@ from __future__ import unicode_literals
 
 try:
     from urllib import urlencode
-except NameError: #py3
+except ImportError: #py3
     from urllib.parse import urlencode
 
 from django.shortcuts import render, redirect, get_object_or_404
