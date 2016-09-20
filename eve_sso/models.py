@@ -33,7 +33,7 @@ def generate_auth_string():
     client_secret = EVE_SSO_CLIENT_SECRET
     conc = "%s:%s" % (client_id, client_secret)
     auth = base64.b64encode(conc.encode('utf-8'))
-    return 'Basic %s' % auth
+    return 'Basic ' + auth.decode(encoding='utf-8')
 
 
 @python_2_unicode_compatible
