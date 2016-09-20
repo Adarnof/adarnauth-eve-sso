@@ -1,6 +1,10 @@
 from __future__ import unicode_literals
 
-import urllib
+try:
+    from urllib import urlencode
+except NameError: #py3
+    from urllib.parse import urlencode
+
 from django.shortcuts import render, redirect, get_object_or_404
 from eve_sso.app_settings import EVE_SSO_CLIENT_ID, EVE_SSO_CALLBACK_URL
 from django.utils.six import string_types
