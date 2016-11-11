@@ -1,7 +1,7 @@
 from __future__ import unicode_literals
+from datetime import timedelta
 from celery.task import periodic_task
 from django.utils import timezone
-from datetime import timedelta
 from eve_sso.models import CallbackRedirect, CallbackCode, AccessToken, TokenError
 
 
@@ -11,8 +11,9 @@ def cleanup_callbackredirect(max_age=300):
     Delete old :model:`eve_sso.CallbackRedirect` models.
     Accepts a max_age parameter, in seconds (default 300).
     """
-    max_age_obj = timedelta(seconds=max_age)
-    CallbackRedirect.objects.filter(created__lte=timezone.now() - max_age_obj).delete()
+    CallbackRedirect.objects.filter(
+        created__lte=timezone.now() - timedelta(seconds=max_age),
+    ).delete()
 
 
 @periodic_task(run_every=timedelta(days=1))

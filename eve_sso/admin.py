@@ -21,5 +21,5 @@ class AccessTokenAdmin(admin.ModelAdmin):
 
     get_scopes.short_description = 'Scopes'
 
-    list_display = ('user', 'character_name', 'get_scopes')
-    search_fields = ['user__%s' % User.USERNAME_FIELD, 'character_name', 'scopes__name']
+    list_display = ('owner', 'character_name', 'get_scopes')
+    search_fields = ('owner__%s' % User.USERNAME_FIELD, 'character_name', 'scopes__name')

@@ -1,5 +1,7 @@
 from __future__ import unicode_literals
 
+import logging
+
 try:
     from urllib import urlencode
 except ImportError: #py3
@@ -14,6 +16,7 @@ from .models import CallbackCode, CallbackRedirect
 
 EVE_SSO_LOGIN_URL = app_settings.LOGIN_URL
 
+logger = logging.getLogger('eve_sso.views')
 
 def sso_redirect(request, scopes=[], return_to=None):
     """

@@ -1,8 +1,11 @@
 from __future__ import unicode_literals
 from django.conf.urls import url
-import eve_sso.views
+
+from .views import (
+    receive_callback,
+)
 
 app_name = 'eve_sso'
 urlpatterns = [
-    url(r'^callback/$', eve_sso.views.receive_callback, name='callback'),
+    url(r'^callback/$', receive_callback, name='callback'),
 ]
