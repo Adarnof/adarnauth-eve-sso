@@ -6,12 +6,13 @@ except ImportError: #py3
     from urllib.parse import urlencode
 
 from django.shortcuts import render, redirect, get_object_or_404
-from eve_sso.app_settings import EVE_SSO_CLIENT_ID, EVE_SSO_CALLBACK_URL
 from django.utils.six import string_types
 from django.core.urlresolvers import reverse
-from eve_sso.models import CallbackCode, CallbackRedirect
 
-EVE_SSO_LOGIN_URL = "https://login.eveonline.com/oauth/authorize/"
+from .app_settings import app_settings, EVE_SSO_CLIENT_ID, EVE_SSO_CALLBACK_URL
+from .models import CallbackCode, CallbackRedirect
+
+EVE_SSO_LOGIN_URL = app_settings.LOGIN_URL
 
 
 def sso_redirect(request, scopes=[], return_to=None):

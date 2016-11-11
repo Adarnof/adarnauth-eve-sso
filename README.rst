@@ -28,9 +28,13 @@ Quick start
 
 4. Add SSO client settings to your project settings like this::
 
-    EVE_SSO_CLIENT_ID = "my client id"
-    EVE_SSO_CLIENT_SECRET = "my client secret"
-    EVE_SSO_CALLBACK_URL = "my client callback url"
+    EVE_SSO = {
+        'CLIENT_ID': 'my client id',
+        'CLIENT_SECRET': 'my client secret',
+        # set same callback url here and in the application form
+        # it's something like `https://mysite/eve_sso/callback/`
+        'CALLBACK_URL': 'my client callback url',
+    }
 
 5. Run `python manage.py migrate` to create the eve_sso models.
 
@@ -41,7 +45,7 @@ Usage in Views
 create a new one if none found::
 
     from eve_sso.decorators import token_required
-    @token_required(scopes=['characterFiittingsRead', 'characterFittingsWrite'])
+    @token_required(scopes=['characterFittingsRead', 'characterFittingsWrite'])
     def my_view(request, tokens):
         ...stuff...
 
