@@ -18,6 +18,35 @@ from .crest import (
 
 
 @python_2_unicode_compatible
+class PortraitUrl(object):
+    """
+    Take character_id and renders url to EVE image server when converted to
+    string or called. Different sizes can be selected using argument to
+    __call__ or via __getitem__ (for django templates).
+    """
+    def __init__(self, character_id):
+        self.character_id = character_id
+
+    def get_portrait_url(self, size=None):
+        """
+        Returns URL to Character portrait from EVE Image Server
+        Not all sizes are valid. Some known: 32, 50, 64, 128, 256, 512
+        Read https://image.eveonline.com/
+        """
+        return app_settings.PORTRAIT_URL_TEMPLATE.format(
+            charid=self.character_id,
+            size=size or 128,
+        )
+
+    def __str__(self):
+        return self.get_portrait_url()
+
+    def __getitem__(self, size):
+        # Django template will use this after getattr fails
+        return self.get_portrait_url(size)
+
+
+@python_2_unicode_compatible
 class Scope(models.Model):
     """
     Represents an access scope granted by SSO.
@@ -133,6 +162,13 @@ class AccessToken(models.Model):
                 raise TokenExpiredError()
             self.refresh()
         return self.access_token
+
+    @property
+    def character_portrait(self):
+        """
+        Return PotraitUrl renderer object
+        """
+        return PortraitUrl(self.character_id)
 
     def _update(self, tokens, verify, save_all=False):
         changed = set()
