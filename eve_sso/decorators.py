@@ -3,7 +3,9 @@ import logging
 from functools import wraps
 from django.utils.decorators import available_attrs
 from django.utils.six import string_types
-from eve_sso.models import AccessToken, CallbackRedirect, TokenError
+
+from .crest import TokenError
+from .models import AccessToken, CallbackRedirect
 
 
 logger = logging.getLogger('eve_sso.decorators')

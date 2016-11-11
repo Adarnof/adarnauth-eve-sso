@@ -1,7 +1,5 @@
 from __future__ import unicode_literals
-import datetime
 import hashlib
-import requests
 import uuid
 from django.conf import settings
 from django.db import models
@@ -9,24 +7,14 @@ from django.utils import timezone
 from django.utils.encoding import python_2_unicode_compatible
 from django.utils.translation import ugettext_lazy as _
 
-from .app_settings import app_settings, EVE_SSO_TOKEN_VALID_DURATION
-from .managers import CallbackRedirectManager
-
-
-class TokenError(Exception):
-    pass
-
-
-class TokenInvalidError(TokenError):
-    pass
-
-
-class TokenExpiredError(TokenError):
-    pass
-
-
-class NotRefreshableTokenError(TokenError):
-    pass
+from .app_settings import app_settings
+from .managers import AccessTokenManager, CallbackRedirectManager
+from .crest import (
+    TokenInvalidError,
+    TokenExpiredError,
+    NotRefreshableTokenError,
+    CrestTokenAPI,
+)
 
 
 @python_2_unicode_compatible
@@ -46,61 +34,6 @@ class Scope(models.Model):
 
 
 @python_2_unicode_compatible
-class CallbackCode(models.Model):
-    """
-    Stores the code received from SSO callback.
-    """
-    CODE_EXCHANGE_URL = "https://login.eveonline.com/oauth/token"
-    TOKEN_EXCHANGE_URL = "https://login.eveonline.com/oauth/verify"
-
-    code = models.CharField(max_length=254, help_text="Code used to retrieve access token from SSO.")
-    created = models.DateTimeField(auto_now_add=True)
-
-    def __str__(self):
-        return self.code
-
-    def exchange(self):
-        """
-        Exchanges SSO callback code for access token. Returns :model:`eve_sso.AccessToken`. Self-deletes.
-        """
-        custom_headers = {
-            'Authorization': app_settings.AUTH_TOKEN,
-            'Content-Type': 'application/json',
-        }
-        data = {
-            'grant_type': 'authorization_code',
-            'code': self.code,
-        }
-        r = requests.post(self.CODE_EXCHANGE_URL, headers=custom_headers, json=data)
-        r.raise_for_status()
-        access_token = r.json()['access_token']
-        refresh_token = r.json()['refresh_token']
-
-        custom_headers = {'Authorization': 'Bearer ' + access_token}
-
-        r = requests.get(self.TOKEN_EXCHANGE_URL, headers=custom_headers)
-        if r.status_code == 403:
-            raise TokenInvalidError()
-        r.raise_for_status()
-        model = AccessToken.objects.create(
-            character_id=r.json()['CharacterID'],
-            character_name=r.json()['CharacterName'],
-            character_owner_hash=r.json()['CharacterOwnerHash'],
-            access_token=access_token,
-            refresh_token=refresh_token,
-            token_type=r.json()['TokenType']
-        )
-
-        if 'Scopes' in r.json():
-            for s in r.json()['Scopes'].split():
-                scope = Scope.objects.get(name=s)
-                model.scopes.add(scope)
-
-        self.delete()
-        return model
-
-
-@python_2_unicode_compatible
 class AccessToken(models.Model):
     """
     Stores the token returned by SSO callback.
@@ -108,6 +41,13 @@ class AccessToken(models.Model):
     created = models.DateTimeField(
         auto_now_add=True,
         help_text=_("Datetime when this token was created"))
+    updated = models.DateTimeField(
+        help_text=_("Datetime when this token was last updated"))
+    expires = models.DateTimeField(
+        help_text=_("Datetime when access_token expires."))
+    invalid = models.BooleanField(
+        default=False,
+        help_text=_("If true, this token is not valid anymore"))
     owner = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         null=True,
@@ -146,6 +86,8 @@ class AccessToken(models.Model):
         help_text=_("The unique string identifying this character and its owning EVE "
                     "account. Changes if the owning account changes."))
 
+    objects = AccessTokenManager()
+
     def __str__(self):
         return "{} - {}".format(
             self.character_name,
@@ -172,10 +114,14 @@ class AccessToken(models.Model):
         """
         Determines if the access token has expired.
         """
-        if self.created + datetime.timedelta(seconds=EVE_SSO_TOKEN_VALID_DURATION) > timezone.now():
-            return False
-        else:
-            return True
+        return self.expires < timezone.now()
+
+    @property
+    def valid(self):
+        """
+        Return true if this token is currently valid
+        """
+        return not self.invalid and not self.expired
 
     @property
     def token(self):
@@ -188,28 +134,65 @@ class AccessToken(models.Model):
             self.refresh()
         return self.access_token
 
-    def refresh(self):
+    def _update(self, tokens, verify, save_all=False):
+        changed = set()
+        data = {
+            'updated': tokens.updated,
+            'expires': tokens.expires,
+            'access_token': tokens.access_token,
+            'character_id': verify.character_id,
+            'character_name': verify.character_name,
+            'character_owner_hash': verify.character_owner_hash,
+        }
+
+        # update and save changed
+        for key, value in data.items():
+            if value != getattr(self, key, None):
+                setattr(self, key, value)
+                changed.add(key)
+        self.save(update_fields=None if save_all else list(changed))
+
+        # update scopes
+        old_scopes = frozenset((scope.name for scope in self.scopes.all()))
+        new_scopes = verify.scopes
+        remove_scopes = old_scopes - new_scopes
+        add_scopes = new_scopes - old_scopes
+        if remove_scopes:
+            scopes = Scope.objects.filter(name__in=remove_scopes)
+            self.scopes.remove(*remove_scopes)
+        if add_scopes:
+            scopes = Scope.objects.filter(name__in=add_scopes)
+            self.scopes.add(*scopes)
+
+    def refresh(self, crest=None):
         """
         Exchanges refresh token to generate a fresh access token.
+        Return True if token is still valid or False if not.
+        If token is not refreshable raises NotRefreshableTokenError.
         """
-        if self.can_refresh:
-            custom_headers = {
-                'Content-Type': 'application/json',
-                'Authorization': app_settings.AUTH_TOKEN,
-            }
-            params = {
-                'grant_type': self.TOKEN_REFRESH_GRANT_TYPE,
-                'refresh_token': self.refresh_token,
-            }
-            r = requests.post(self.TOKEN_REFRESH_URL, params=params, headers=custom_headers)
-            if r.status_code in [400, 403]:
-                raise TokenInvalidError()
-            r.raise_for_status()
-            self.created = timezone.now()
-            self.access_token = r.json()['access_token']
-            self.save()
-        else:
+        if not self.can_refresh:
             raise NotRefreshableTokenError()
+
+        # If this token is invalid, do not try to refresh
+        if self.invalid:
+            return False
+
+        if not crest:
+            crest = CrestTokenAPI()
+
+        # Try to refresh
+        try:
+            tokens = crest.refresh_token(self.refresh_token)
+            verify = crest.verify_token(tokens.access_token)
+        except TokenInvalidError:
+            # Mark token as invalid as crest endpoint reported it to be
+            self.invalid = True
+            self.save(update_fields=['invalid'])
+            return False
+
+        # Token refresh ok, update
+        self._update(tokens, verify)
+        return True
 
 
 @python_2_unicode_compatible
@@ -240,6 +223,9 @@ class CallbackRedirect(models.Model):
         on_delete=models.CASCADE,
         related_name='callbacks',
         help_text=_("AccessToken generated by a completed code exchange from callback processing."))
+    allow_authentication = models.BooleanField(
+        default=False,
+        help_text=_("If true callback is allowed to authenticate the user"))
 
     objects = CallbackRedirectManager()
 
@@ -268,14 +254,5 @@ class CallbackRedirect(models.Model):
         """
         if not self.hash_string or not self.salt:
             raise AttributeError("Model is not yet populated.")
-        if not request.session.exists(request.session.session_key):
-            # install session in database
-            request.session.create()
         req_hash = self.generate_hash(request.session.session_key, self.salt)
-        state = request.GET.get('state', None)
-        if req_hash == state:
-            # ensures state is a match for the request session
-            if req_hash == self.hash_string:
-                # ensures the request session is a match for this redirect
-                return True
-        return False
+        return req_hash == self.hash_string

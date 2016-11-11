@@ -1,11 +1,10 @@
 from __future__ import unicode_literals
 from django.contrib import admin
-from eve_sso.models import CallbackCode, AccessToken, Scope, CallbackRedirect
+from eve_sso.models import CallbackRedirect, Scope, AccessToken
 from django.contrib.auth import get_user_model
 
 User = get_user_model()
 
-admin.site.register(CallbackCode)
 admin.site.register(CallbackRedirect)
 
 

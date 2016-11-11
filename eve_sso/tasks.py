@@ -2,7 +2,9 @@ from __future__ import unicode_literals
 from datetime import timedelta
 from celery.task import periodic_task
 from django.utils import timezone
-from eve_sso.models import CallbackRedirect, CallbackCode, AccessToken, TokenError
+
+from .crest import CrestTokenAPI
+from .models import CallbackRedirect, AccessToken
 
 
 @periodic_task(run_every=timedelta(hours=4))
@@ -17,26 +19,13 @@ def cleanup_callbackredirect(max_age=300):
 
 
 @periodic_task(run_every=timedelta(days=1))
-def cleanup_callbackcode(max_age=300):
-    """
-    Delete old :model:`eve_sso.CallbackCode` models.
-    Accepts a max_age parameter, in seconds (default 300).
-    """
-    max_age_obj = timedelta(seconds=max_age)
-    CallbackCode.objects.filter(created__lte=timezone.now() - max_age_obj).delete()
-
-
-@periodic_task(run_every=timedelta(days=1))
 def cleanup_accesstoken():
     """
     Delete expired :model:`eve_sso.AccessToken` models.
     """
-    for model in AccessToken.objects.all():
-        if model.expired:
-            if model.can_refresh:
-                try:
-                    model.refresh()
-                except TokenError:
-                    model.delete()
-            else:
-                model.delete()
+    crest = CrestTokenAPI()
+    for model in AccessToken.objects.get_for_refresh():
+        if model.can_refresh:
+            model.refresh(crest=crest)
+        else:
+            model.delete()
