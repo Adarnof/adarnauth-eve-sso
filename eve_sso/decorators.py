@@ -1,12 +1,14 @@
 from __future__ import unicode_literals
+import logging
 from functools import wraps
 from django.utils.decorators import available_attrs
 from django.utils.six import string_types
-from eve_sso.models import AccessToken, CallbackRedirect, TokenError
 
-import logging
+from .crest import TokenError
+from .models import AccessToken, CallbackRedirect
 
-logger = logging.getLogger(__name__)
+
+logger = logging.getLogger('eve_sso.decorators')
 
 
 def token_required(scopes=[], new=False):
