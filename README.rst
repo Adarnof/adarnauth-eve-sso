@@ -1,3 +1,9 @@
+Depreciated
+===========
+This package has been depreciated due to the retirement of the CREST API. Please use adarnauth-esi to access the EVE Swagger Interface: https://github.com/adarnof/adarnauth-esi
+
+See here for more information: https://community.eveonline.com/news/dev-blogs/introducing-esi/
+
 =====
 Adarnauth-EVE-SSO
 =====
